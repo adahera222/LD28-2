@@ -8,6 +8,7 @@ from pygame.locals import *
 
 # game constants
 SCREENRECT = Rect(0, 0, 1920, 1080)
+MAX_SHOTS  = 2
 
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 
@@ -54,6 +55,19 @@ class Player(pygame.sprite.Sprite):
         self.rect.move_ip(direction[0]*self.speed, direction[1]*self.speed)
         self.rect = self.rect.clamp(SCREENRECT)
 
+class Shot(pygame.sprite.Sprite):
+    speed = -11
+    images = []
+    def __init__(self, pos):
+        pygame.sprite.Sprite.__init__(self, self.containers)
+        self.image = self.images[0]
+        self.rect = self.image.get_rect(midbottom=pos)
+
+    def update(self):
+        self.rect.move_ip(0, self.speed)
+        if self.rect.top <= 0:
+            self.kill()
+
 def main():
     pygame.init()
     if pygame.mixer and not pygame.mixer.get_init():
@@ -70,6 +84,7 @@ def main():
     
     img = load_image('player_ship.gif')
     Player.images = [img, pygame.transform.flip(img, 1, 0)]
+    Shot.images = [load_image('shot.gif')]
 
     pygame.display.set_caption('Pygame Aliens')
     pygame.mouse.set_visible(0)
@@ -83,10 +98,13 @@ def main():
     screen.blit(background, (0,0))
     pygame.display.flip()
 
+    shots = pygame.sprite.Group()
     all = pygame.sprite.RenderUpdates()
 
     Player.containers = all
+    Shot.containers = shots, all
 
+    shoot_sound = load_sound('shoot1.wav')
     if pygame.mixer:
         music = os.path.join(main_dir, 'data', 'POL-rocket-station-short.wav')
         pygame.mixer.music.load(music)
@@ -109,6 +127,11 @@ def main():
 
         #handle player input
         direction = (keystate[K_RIGHT] - keystate[K_LEFT], keystate[K_DOWN] - keystate[K_UP])
+        firing = keystate[K_SPACE]
+        if not player.reloading and firing and len(shots) < MAX_SHOTS:
+            Shot((player.rect.centerx, player.rect.top))
+            shoot_sound.play()
+        player.reloading = firing
         player.move(direction)
         firing = keystate[K_SPACE]
 
