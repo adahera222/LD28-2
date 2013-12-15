@@ -9,7 +9,7 @@ from pygame.locals import *
 # game constants
 SCREENRECT      = Rect(0, 0, 1920, 1080)
 MAX_SHOTS       = 1
-ENEMY_RELOAD    = 12
+ENEMY_RELOAD    = 20
 ENEMY_ODDS      = 25
 SCORE           = 0
 BOMB_ODDS       = 10
@@ -173,6 +173,14 @@ class Starfield():
 def main():
     pygame.init()
     random.seed()
+
+    #Detect and initialize joysticks for input
+    pygame.joystick.init()
+    joysticks = []
+    for i in range(0, pygame.joystick.get_count()):
+        joysticks.append(pygame.joystick.Joystick(i))
+        joysticks[-1].init()
+
     if pygame.mixer and not pygame.mixer.get_init():
         print ('Warning, no sound')
         pygame.mixer = None
@@ -246,13 +254,16 @@ def main():
         all.update()
 
         #handle player input
-        direction = (keystate[K_RIGHT] - keystate[K_LEFT], keystate[K_DOWN] - keystate[K_UP])
-        firing = keystate[K_SPACE]
+        (dx, dy) = (keystate[K_RIGHT] - keystate[K_LEFT], keystate[K_DOWN] - keystate[K_UP])
+        if pygame.joystick.get_count() > 0:
+            (dx, dy) = pygame.joystick.Joystick(0).get_hat(0)
+            dy = -dy
+        firing = keystate[K_SPACE] or pygame.joystick.Joystick(0).get_button(0)
         if not player.reloading and firing and len(shots) < MAX_SHOTS:
             Shot((player.rect.centerx, player.rect.top))
             shoot_sound.play()
         player.reloading = firing
-        player.move(direction)
+        player.move((dx, dy))
         firing = keystate[K_SPACE]
 
         # create new enemy
