@@ -90,6 +90,21 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.top = self.rect.bottom + 1
             self.rect = self.rect.clamp(SCREENRECT)
 
+class Explosion(pygame.sprite.Sprite):
+    defaultlife = 12
+    animcycle = 3
+    images = []
+    def __init__(self, actor):
+        pygame.sprite.Sprite.__init__(self, self.containers)
+        self.image = self.images[0]
+        self.rect = self.image.get_rect(center=actor.rect.center)
+        self.life = self.defaultlife
+
+    def update(self):
+        self.life = self.life - 1
+        self.image = self.images[self.life//self.animcycle%2]
+        if self.life <= 0: self.kill()
+
 class Score(pygame.sprite.Sprite):
     def __init__(self):
         pygame.sprite.Sprite.__init__(self)
@@ -120,9 +135,10 @@ def main():
     bestdepth = pygame.display.mode_ok(SCREENRECT.size, winstyle, 32)
     screen = pygame.display.set_mode(SCREENRECT.size, winstyle, bestdepth)
     game_over = False
-    
-    img = load_image('player_ship.gif')
-    Player.images = [img, pygame.transform.flip(img, 1, 0)]
+
+    Player.images = [load_image('player_ship.gif')]
+    img = load_image('explosion.gif')
+    Explosion.images = [img, pygame.transform.flip(img, 1, 1)]
     Shot.images = [load_image('shot.gif')]
     Enemy.images = [load_image('enemy.gif')]
 
@@ -147,6 +163,7 @@ def main():
     Player.containers = all
     Enemy.containers = enemies, all
     Shot.containers = shots, all
+    Explosion.containers = all
     Score.containers = all
 
     # load the sound effects/music
@@ -200,13 +217,15 @@ def main():
         # detect collisions
         for enemy in pygame.sprite.spritecollide(player, enemies, 1):
             explode_sound.play()
+            Explosion(enemy)
+            Explosion(player)
             SCORE = SCORE + 1
             player.kill()
             game_over = True
 
         for enemy in pygame.sprite.groupcollide(shots, enemies, 1, 1).keys():
             explode_sound.play()
-            #Explosion(enemy)
+            Explosion(enemy)
             SCORE = SCORE + 1
 
         #draw the scene
