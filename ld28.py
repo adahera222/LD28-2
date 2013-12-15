@@ -88,6 +88,7 @@ class Enemy(pygame.sprite.Sprite):
         self.image = self.images[0]
         self.rect = self.image.get_rect()
         self.facing = random.choice((-1,1)) * Enemy.speed
+        self.ydir = 1
         if self.facing < 0:
             self.rect.right = SCREENRECT.right
 
@@ -95,7 +96,14 @@ class Enemy(pygame.sprite.Sprite):
         self.rect.move_ip(self.facing, 0)
         if not SCREENRECT.contains(self.rect):
             self.facing = -self.facing;
-            self.rect.top = self.rect.bottom + 1
+            if self.ydir == 1:
+                self.rect.top = self.rect.bottom + 1
+            else:
+                self.rect.bottom = self.rect.top - 1
+            if self.rect.bottom > SCREENRECT.height:
+                self.ydir = -math.fabs(self.ydir)
+            if self.rect.top < 0:
+                self.ydir = math.fabs(self.ydir)
             self.rect = self.rect.clamp(SCREENRECT)
 
 class Explosion(pygame.sprite.Sprite):
