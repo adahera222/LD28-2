@@ -248,13 +248,14 @@ def main():
             Bomb(lastenemy.sprite)
 
         # detect collisions
-        for enemy in pygame.sprite.spritecollide(player, enemies, 1):
-            explode_sound.play()
-            Explosion(enemy)
-            Explosion(player)
-            SCORE = SCORE + 1
-            #player.kill()
-            #game_over = True
+        for enemy in enemies.sprites():
+            if (player.hitbox.colliderect(enemy.rect)):
+                explode_sound.play()
+                Explosion(enemy)
+                Explosion(player)
+                SCORE = SCORE + 1
+                player.kill()
+                game_over = True
 
         for shot in pygame.sprite.groupcollide(shots, enemies, 0, 1).keys():
             explode_sound.play()
