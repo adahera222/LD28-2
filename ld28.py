@@ -11,6 +11,7 @@ SCREENRECT      = Rect(0, 0, 1920, 1080)
 MAX_SHOTS       = 1
 ENEMY_RELOAD    = 12
 ENEMY_ODDS      = 25
+SCORE           = 0
 
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 
@@ -89,6 +90,22 @@ class Enemy(pygame.sprite.Sprite):
             self.rect.top = self.rect.bottom + 1
             self.rect = self.rect.clamp(SCREENRECT)
 
+class Score(pygame.sprite.Sprite):
+    def __init__(self):
+        pygame.sprite.Sprite.__init__(self)
+        self.font = pygame.font.Font(None, 20)
+        self.font.set_italic(1)
+        self.color = Color('white')
+        self.lastscore = -1
+        self.update()
+        self.rect = self.image.get_rect().move(20, SCREENRECT.height - 20)
+
+    def update(self):
+        if SCORE != self.lastscore:
+            self.lastscore = SCORE
+            msg = "Score: %d" % SCORE
+            self.image = self.font.render(msg, 0, self.color)
+
 def main():
     pygame.init()
     random.seed()
@@ -109,6 +126,8 @@ def main():
     Shot.images = [load_image('shot.gif')]
     Enemy.images = [load_image('enemy.gif')]
 
+    icon = pygame.transform.scale(Enemy.images[0], (32, 32))
+    pygame.display.set_icon(icon)
     pygame.display.set_caption('Pygame Aliens')
     pygame.mouse.set_visible(0)
 
@@ -128,6 +147,7 @@ def main():
     Player.containers = all
     Enemy.containers = enemies, all
     Shot.containers = shots, all
+    Score.containers = all
 
     # load the sound effects/music
     explode_sound = load_sound('explode.wav')
@@ -137,11 +157,15 @@ def main():
         pygame.mixer.music.load(music)
         pygame.mixer.music.play(-1)
 
+    global score
     enemy_reload = ENEMY_RELOAD
     kills = 0
 
+    global SCORE
     player = Player()
     Enemy()
+    if pygame.font:
+        all.add(Score())
 
     while not game_over: #main game loop
         for event in pygame.event.get():
@@ -176,13 +200,14 @@ def main():
         # detect collisions
         for enemy in pygame.sprite.spritecollide(player, enemies, 1):
             explode_sound.play()
+            SCORE = SCORE + 1
             player.kill()
             game_over = True
 
         for enemy in pygame.sprite.groupcollide(shots, enemies, 1, 1).keys():
             explode_sound.play()
-            #Explosion(alien)
-            #SCORE = SCORE + 1
+            #Explosion(enemy)
+            SCORE = SCORE + 1
 
         #draw the scene
         dirty = all.draw(screen)
