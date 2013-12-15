@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os.path, random
+import os.path, random, operator, math
 
 # import basic pygame modules
 import pygame
@@ -12,6 +12,7 @@ MAX_SHOTS       = 1
 ENEMY_RELOAD    = 12
 ENEMY_ODDS      = 25
 SCORE           = 0
+BOMB_ODDS       = 10
 
 main_dir = os.path.split(os.path.abspath(__file__))[0]
 
@@ -53,6 +54,11 @@ class Player(pygame.sprite.Sprite):
         self.reloading = 0
         self.origtop = self.rect.top
         self.facing = -1
+        self.padding = 32
+        self.hitbox = pygame.Rect(map(operator.add, self.rect, (self.padding, self.padding, -self.padding*2, -self.padding*2)))
+
+    def update(self):
+        self.hitbox = pygame.Rect(map(operator.add, self.rect, (self.padding, self.padding, -self.padding*2, -self.padding*2)))
 
     def move(self, direction):
         self.rect.move_ip(direction[0]*self.speed, direction[1]*self.speed)
@@ -69,7 +75,9 @@ class Shot(pygame.sprite.Sprite):
     def update(self):
         self.rect.move_ip(0, self.speed)
         if self.rect.top <= 0:
-            self.kill()
+            self.speed = math.fabs(self.speed)
+        if self.rect.bottom >= SCREENRECT.height - 32:
+            self.speed = -math.fabs(self.speed)
 
 class Enemy(pygame.sprite.Sprite):
     speed = 10
@@ -104,6 +112,21 @@ class Explosion(pygame.sprite.Sprite):
         self.life = self.life - 1
         self.image = self.images[self.life//self.animcycle%2]
         if self.life <= 0: self.kill()
+
+class Bomb(pygame.sprite.Sprite):
+    speed = 9
+    images = []
+    def __init__(self, alien):
+        pygame.sprite.Sprite.__init__(self, self.containers)
+        self.image = self.images[0]
+        self.rect = self.image.get_rect(midbottom=
+                    alien.rect.move(0,5).midbottom)
+
+    def update(self):
+        self.rect.move_ip(0, self.speed)
+        if self.rect.bottom >= SCREENRECT.height - 32:
+            Explosion(self)
+            self.kill()
 
 class Score(pygame.sprite.Sprite):
     def __init__(self):
@@ -141,6 +164,7 @@ def main():
     Explosion.images = [img, pygame.transform.flip(img, 1, 1)]
     Shot.images = [load_image('shot.gif')]
     Enemy.images = [load_image('enemy.gif')]
+    Bomb.images = [load_image('bomb.gif')]
 
     icon = pygame.transform.scale(Enemy.images[0], (32, 32))
     pygame.display.set_icon(icon)
@@ -156,13 +180,18 @@ def main():
     screen.blit(background, (0,0))
     pygame.display.flip()
 
+    # initialize game groups
     enemies = pygame.sprite.Group()
     shots = pygame.sprite.Group()
+    bombs = pygame.sprite.Group()
     all = pygame.sprite.RenderUpdates()
+    lastenemy = pygame.sprite.GroupSingle()
 
+    # assign default groups to each sprite class
     Player.containers = all
-    Enemy.containers = enemies, all
+    Enemy.containers = enemies, all, lastenemy
     Shot.containers = shots, all
+    Bomb.containers = bombs, all
     Explosion.containers = all
     Score.containers = all
 
@@ -214,19 +243,32 @@ def main():
             Enemy()
             enemy_reload = ENEMY_RELOAD
 
+        # drop bombs
+        if lastenemy and not int(random.random() * BOMB_ODDS):
+            Bomb(lastenemy.sprite)
+
         # detect collisions
         for enemy in pygame.sprite.spritecollide(player, enemies, 1):
             explode_sound.play()
             Explosion(enemy)
             Explosion(player)
             SCORE = SCORE + 1
-            player.kill()
-            game_over = True
+            #player.kill()
+            #game_over = True
 
-        for enemy in pygame.sprite.groupcollide(shots, enemies, 1, 1).keys():
+        for shot in pygame.sprite.groupcollide(shots, enemies, 0, 1).keys():
             explode_sound.play()
-            Explosion(enemy)
+            Explosion(shot)
+            shot.speed = -shot.speed
             SCORE = SCORE + 1
+
+        for bomb in bombs.sprites():
+            if (player.hitbox.colliderect(bomb.rect)):
+                explode_sound.play()
+                Explosion(bomb)
+                bomb.kill()
+                #player.kill()
+                #game_over = True
 
         #draw the scene
         dirty = all.draw(screen)
