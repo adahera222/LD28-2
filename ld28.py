@@ -144,6 +144,32 @@ class Score(pygame.sprite.Sprite):
             msg = "Score: %d" % SCORE
             self.image = self.font.render(msg, 0, self.color)
 
+class Starfield():
+    def __init__(self, screen):
+        global stars
+        stars = []
+        for i in range(200):
+            star = [random.randrange(0,SCREENRECT.width), random.randrange(0,SCREENRECT.height), random.choice([1,2,3])]
+            stars.append(star)
+
+    def update(self, screen):
+        global stars
+        for star in stars:
+            star[1] += star[2]
+            if star[1] >= SCREENRECT.height:
+                star[1] = 0
+                star[0] = random.randrange(0,SCREENRECT.width)
+                star[2] = random.choice([1,2,3])
+
+            if star[2] == 1:
+                color = (100,100,100)
+            elif star[2] == 2:
+                color = (190,190,190)
+            elif star[2] == 3:
+                color = (255,255,255)
+
+            pygame.draw.rect(screen, color, (star[0],star[1],star[2],star[2]))
+
 def main():
     pygame.init()
     random.seed()
@@ -151,7 +177,7 @@ def main():
         print ('Warning, no sound')
         pygame.mixer = None
 
-    fps = 45
+    fps = 60
     fps_clock = pygame.time.Clock()
     screen_width, screen_height = 1920, 1080
     winstyle = pygame.FULLSCREEN
@@ -170,15 +196,6 @@ def main():
     pygame.display.set_icon(icon)
     pygame.display.set_caption('Pygame Aliens')
     pygame.mouse.set_visible(0)
-
-    #create the background, tile the bgd image
-    bgdtile = load_image('background.gif')
-    background = pygame.Surface(SCREENRECT.size)
-    for x in range(0, SCREENRECT.width, bgdtile.get_width()):
-        for y in range(0, SCREENRECT.height, bgdtile.get_height()):
-            background.blit(bgdtile, (x, y))
-    screen.blit(background, (0,0))
-    pygame.display.flip()
 
     # initialize game groups
     enemies = pygame.sprite.Group()
@@ -213,6 +230,8 @@ def main():
     if pygame.font:
         all.add(Score())
 
+    starfield = Starfield(screen)
+
     while not game_over: #main game loop
         for event in pygame.event.get():
             if event.type == QUIT or event.type == KEYDOWN and \
@@ -220,8 +239,8 @@ def main():
                 game_over = True
         keystate = pygame.key.get_pressed()
 
-        # clear/erase the last drawn sprites
-        all.clear(screen, background)
+        screen.fill((0,0,0))
+        starfield.update(screen)
 
         #update all the sprites
         all.update()
@@ -268,12 +287,11 @@ def main():
                 explode_sound.play()
                 Explosion(bomb)
                 bomb.kill()
-                #player.kill()
-                #game_over = True
+                player.kill()
+                game_over = True
 
-        #draw the scene
-        dirty = all.draw(screen)
-        pygame.display.update(dirty)
+        all.draw(screen)
+        pygame.display.update()
         fps_clock.tick(fps)
 
     #end main game loop
