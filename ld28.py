@@ -244,7 +244,7 @@ def main():
     explode_sound = load_sound('explode.wav')
     shoot_sound = load_sound('shoot1.wav')
     if pygame.mixer:
-        music = os.path.join(main_dir, 'data', 'POL-rocket-station-short.wav')
+        music = os.path.join(main_dir, 'data', 'bgmusic.mid')
         pygame.mixer.music.load(music)
         pygame.mixer.music.play(-1)
 
