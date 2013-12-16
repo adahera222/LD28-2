@@ -67,17 +67,29 @@ class Player(pygame.sprite.Sprite):
 class Shot(pygame.sprite.Sprite):
     speed = -11
     images = []
-    def __init__(self, pos):
+    def __init__(self, pos, t=None):
         pygame.sprite.Sprite.__init__(self, self.containers)
         self.image = self.images[0]
         self.rect = self.image.get_rect(midbottom=pos)
+        self.homing = False
+        self.target = t
 
     def update(self):
-        self.rect.move_ip(0, self.speed)
+        if self.homing and self.target != None:
+            dx = self.target.rect.x + self.target.rect.width/2 - self.rect.x - self.rect.width/2
+            if (dx > 0):
+                dx = min(dx, math.fabs(self.speed))
+            else:
+                dx = max(dx, -math.fabs(self.speed))
+            self.rect.move_ip(dx, self.speed)
+        else:
+            self.rect.move_ip(0, self.speed)
         if self.rect.top <= 0:
             self.speed = math.fabs(self.speed)
-        if self.rect.bottom >= SCREENRECT.height - 32:
+            self.homing = True
+        if self.rect.bottom >= SCREENRECT.height:
             self.speed = -math.fabs(self.speed)
+        self.rect = self.rect.clamp(SCREENRECT)
 
 class Enemy(pygame.sprite.Sprite):
     speed = 10
@@ -266,13 +278,17 @@ def main():
         if pygame.joystick.get_count() > 0:
             (dx, dy) = pygame.joystick.Joystick(0).get_hat(0)
             dy = -dy
-        firing = keystate[K_SPACE] or pygame.joystick.Joystick(0).get_button(0)
+        firing = keystate[K_SPACE]
+        if pygame.joystick.get_count() > 0:
+            firing = pygame.joystick.Joystick(0).get_button(0)
         if not player.reloading and firing and len(shots) < MAX_SHOTS:
-            Shot((player.rect.centerx, player.rect.top))
+            Shot((player.rect.centerx, player.rect.top), player)
             shoot_sound.play()
         player.reloading = firing
         player.move((dx, dy))
         firing = keystate[K_SPACE]
+        if pygame.joystick.get_count() > 0:
+            firing = pygame.joystick.Joystick(0).get_button(0)
 
         # create new enemy
         if enemy_reload:
@@ -299,7 +315,12 @@ def main():
             explode_sound.play()
             Explosion(shot)
             shot.speed = -shot.speed
+            shot.homing = True
             SCORE = SCORE + 1
+
+        for shot in shots.sprites():
+            if player.hitbox.colliderect(shot.rect):
+                shot.kill()
 
         for bomb in bombs.sprites():
             if (player.hitbox.colliderect(bomb.rect)):
