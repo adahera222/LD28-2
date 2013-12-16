@@ -71,7 +71,7 @@ class Shot(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self, self.containers)
         self.image = self.images[0]
         self.rect = self.image.get_rect(midbottom=pos)
-        self.homing = False
+        self.homing = False if (t == None) else True
         self.target = t
 
     def update(self):
