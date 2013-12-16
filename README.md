@@ -13,3 +13,7 @@ However, it will return to you, after it comes back you can shoot it again.  You
 If you have an Xbox 360 controller use the dpad to move and A to shoot.
 
 Otherwise, use the arrow keys to move and spacebar to shoot.
+
+Art made with MS Paint and Paint.NET,
+Sound effects made with sfxr,
+Music made using the tool at http://www.abundant-music.com/
